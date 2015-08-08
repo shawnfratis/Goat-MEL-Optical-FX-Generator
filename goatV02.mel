@@ -1,0 +1,228 @@
+//This is GOAT (version 1)-a control that allows you to manipulate the opticalFX node of Maya with it's own separate interface.
+//This works in versions 3 and 4 for IRIX, and also version 2010 for Windows, and I'm guessing that
+//it'll work on Mac osX, but either way, USE AT YOUR OWN RISK. I have not tried this on later versions of Maya so I
+//have no idea if it'll work on those.
+//This program is kinda wonky right now-I'm still working out bugs and adding things, so keep checking back.  The commands aren't marked
+//super descriptively yet so you'll have to play with them a bit, but otherwise this should give you all you need to make
+//lens flares and other optical special FX.
+//shawnfratis@gmail.com
+
+
+//NOTE 1: if you get an error that says "object name not unique", or something similar, type this command before you run Goat:
+//deleteUI myWindow;
+
+//NOTE 2: Windows bug #1: goat automatically minimizes Maya, so to exit Goat, or to get back to Maya, you will need to
+//close the main Goat UI/Slider box FIRST, and then maximize Maya, or else Maya will crash.
+
+minimizeApp
+
+file -f -new;
+
+camera -centerOfInterest 5 -focalLength 35 -lensSqueezeRatio 1 -cameraScale 1 -horizontalFilmAperture 1.41732 -horizontalFilmOffset 0 -verticalFilmAperture 0.94488 -verticalFilmOffset 0 -filmFit Fill -overscan 1 -motionBlur 0 -shutterAngle 144 -nearClipPlane 0.01 -farClipPlane 1000 -orthographic 0 -orthographicWidth 30; objectMoveCommand; cameraMakeNode 1 "";
+move -r 0 0 13.91646 ;
+move -r 5.682237 0 0 ;
+move -r 0 4.315894 0 ;
+move -r -0.830304 0 0 ;
+
+viewSet -t; // Set the camera in the active view to the top position
+
+
+ string $MyLabel = "My Panel";
+      window;
+          frameLayout -lv 0;
+                  modelPanel -l $MyLabel;
+      showWindow;
+
+      string $panels[] = `getPanel -all`;
+      string $myPanel;
+      int $i;
+
+      for ($i = 0; $i < size($panels); $i++) {
+          if ($MyLabel == `panel -q -label $panels[$i]`) {
+                  $myPanel = $panels[$i];
+                  print("Found My Panel\n");
+          } 
+      } 
+
+
+RenderViewWindow;
+
+pointLight -n light1;
+
+defaultNavigation -cn -d lightShape1.lightGlow;
+createNode renderSphere -p light1;
+// Result: sphereShape1 //
+setAttr sphereShape1.radius 2.0;
+setAttr sphereShape1.renderType 2;
+setAttr sphereShape1.shadingSamplesOverride 1;
+setAttr sphereShape1.shadingSamples 20;
+setAttr sphereShape1.maxShadingSamples 20;
+sets -addElement initialShadingGroup sphereShape1;
+// Result: initialShadingGroup //
+shadingNode -asPostProcess opticalFX;
+// Result: opticalFX1 //
+
+
+{
+string $sel[] = `ls -lights`;
+string $current;
+string $winName = "lightWindow";
+string $main = "mainWindow";
+int $count = 0;
+
+
+window -title "Goat" -wh 600 300 $winName;
+
+scrollLayout;
+rowColumnLayout -nc 1 -cw 1 500 ($main);
+
+for ($current in $sel)
+	{
+	$count++;
+
+
+text "    Welcome to Goat";
+
+	attrFieldSliderGrp -l "Move X" -min 0 -max 10 -at ("light1.tx") theSliderGroup1;
+
+        attrFieldSliderGrp -l "Move Y" -min 0 -max 10 -at ("light1.ty") theSliderGroup2;
+
+	rowColumnLayout -nc 1 -cw 1 400;
+
+	attrFieldSliderGrp -min (-1) -max 10 -at ($current + ".intensity");
+	text " ";
+	attrFieldSliderGrp -min 0 -max 1 -at ($current + ".colorR");
+	text " ";
+	attrFieldSliderGrp -min 0 -max 1 -at ($current + ".colorG");
+	text " ";
+	attrFieldSliderGrp -min 0 -max 1 -at ($current + ".colorB");
+	text " ";
+        
+	//The visibility slider group was intended to be a 
+//check box for visibility.
+	//However, the checkbox group does not properly 
+//connect to attributes when 
+	//it's created in a for loop, so a slider group was 
+//created instead.
+	//The -s flag set the step value to 1 (meaning an 
+//integer jump) so the 
+	//group is either 1 or 0.
+
+	attrFieldSliderGrp -min 0 -max 1 -vis on -at ($current + ".visibility") -s 1;	
+
+        button -l "Lens Flare ON" -c "setAttr opticalFX1.lensFlare 1" myButton1;
+button -l "Lens Flare OFF" -c "setAttr opticalFX1.lensFlare 0" myButton2;	
+	
+
+button -l "Glow Type 1" -c "setAttr opticalFX1.glowType 1" myButton3;
+button -l "Glow Type 2" -c "setAttr opticalFX1.glowType 2" myButton4;
+button -l "Glow Type 3" -c "setAttr opticalFX1.glowType 3" myButton5;
+button -l "Glow Type 4" -c "setAttr opticalFX1.glowType 4" myButton6;
+button -l "Glow Type 5" -c "setAttr opticalFX1.glowType 5" myButton7;
+
+
+button -l "Halo Type 1" -c "setAttr opticalFX1.haloType 1" myButton8;
+button -l "Halo Type 2" -c "setAttr opticalFX1.haloType 2" myButton9;
+button -l "Halo Type 3" -c "setAttr opticalFX1.haloType 3" myButton10;
+button -l "Halo Type 4" -c "setAttr opticalFX1.haloType 4" myButton11;
+button -l "Halo Type 5" -c "setAttr opticalFX1.haloType 5" myButton12;
+
+
+attrFieldSliderGrp -l "Radial Freq" -min 0 -max 10 -at ("opticalFX1.radialFrequency") theSliderGroup3;
+
+attrFieldSliderGrp -l "Star Pnts" -min 0 -max 10 -at ("opticalFX1.starPoints") theSliderGroup4;
+
+attrFieldSliderGrp -l "Rot" -min 0 -max 10 -at ("opticalFX1.rotation") theSliderGroup5;
+
+
+attrColorSliderGrp -at ("opticalFX1.glowColor");
+
+
+attrFieldSliderGrp -l "Glow Int" -min 0 -max 10 -at ("opticalFX1.glowIntensity") theSliderGroup6;
+
+attrFieldSliderGrp -l "Glow Spr" -min 0 -max 10 -at ("opticalFX1.glowSpread") theSliderGroup7;
+
+attrFieldSliderGrp -l "Glow Nze" -min 0 -max 10 -at ("opticalFX1.glowNoise") theSliderGroup8;
+
+
+attrFieldSliderGrp -l "Glow Rad Nze" -min 0 -max 10 -at ("opticalFX1.glowRadialNoise") theSliderGroup9;
+
+attrFieldSliderGrp -l "Glow Str Lvl" -min 0 -max 10 -at ("opticalFX1.glowStarLevel") theSliderGroup10;
+
+
+attrFieldSliderGrp -l "Glow Opac" -min 0 -max 10 -at ("opticalFX1.glowOpacity") theSliderGroup11;
+
+
+attrColorSliderGrp -at ("opticalFX1.haloColor");
+
+
+
+attrFieldSliderGrp -l "Glow Int" -min 0 -max 10 -at ("opticalFX1.haloIntensity") theSliderGroup12;
+
+attrFieldSliderGrp -l "Glow Spr" -min 0 -max 10 -at ("opticalFX1.haloSpread") theSliderGroup13;
+
+
+
+attrColorSliderGrp -at ("opticalFX1.flareColor");
+
+
+
+attrFieldSliderGrp -l "Flare Int" -min 0 -max 10 -at ("opticalFX1.flareIntensity") theSliderGroup14;
+
+attrFieldSliderGrp -l "Flare # Crcles" -min 0 -max 10 -at ("opticalFX1.flareNumCircles") theSliderGroup15;
+
+attrFieldSliderGrp -l "Flare Min Sze" -min 0 -max 10 -at ("opticalFX1.flareMinSize") theSliderGroup16;
+
+attrFieldSliderGrp -l "Flare Max Sze" -min 0 -max 10 -at ("opticalFX1.flareMaxSize") theSliderGroup17;
+
+
+button -l "Hex Flare ON" -c "setAttr opticalFX1.hexagonFlare 1" myButton13;
+button -l "Hex Flare OFF" -c "setAttr opticalFX1.hexagonFlare 0" myButton14;	
+
+
+
+attrFieldSliderGrp -l "Flare Clr Spr" -min 0 -max 10 -at ("opticalFX1.flareColSpread") theSliderGroup18;
+
+
+attrFieldSliderGrp -l "Flare Focus" -min 0 -max 10 -at ("opticalFX1.flareFocus") theSliderGroup19;
+
+
+attrFieldSliderGrp -l "Flare Vert" -min 0 -max 10 -at ("opticalFX1.flareVertical") theSliderGroup20;
+
+attrFieldSliderGrp -l "Flare Horz" -min 0 -max 10 -at ("opticalFX1.flareHorizontal") theSliderGroup21;
+
+attrFieldSliderGrp -l "Flare Lngth" -min 0 -max 10 -at ("opticalFX1.flareLength") theSliderGroup22;
+
+
+
+attrFieldSliderGrp -l "Noise U" -min 0 -max 10 -at ("opticalFX1.noiseUscale") theSliderGroup23;
+
+attrFieldSliderGrp -l "Noise V" -min 0 -max 10 -at ("opticalFX1.noiseVscale") theSliderGroup24;
+
+attrFieldSliderGrp -l "Noise U offst" -min 0 -max 10 -at ("opticalFX1.noiseUoffset") theSliderGroup25;
+
+
+attrFieldSliderGrp -l "Noise V offst" -min 0 -max 10 -at ("opticalFX1.noiseVoffset") theSliderGroup26;
+
+attrFieldSliderGrp -l "Noise Thresh" -min 0 -max 10 -at ("opticalFX1.noiseThreshold") theSliderGroup27;
+
+
+	setParent $main;
+	}
+showWindow $winName;
+}
+
+ window ;
+       columnLayout r;
+       swatchDisplayPort -wh 100 100 -sn opticalFX1;
+       
+
+     
+   
+      timePort myTimePort;
+      showWindow;
+
+      timePort -e -snap off myTimePort;
+
+
+showWindow myWindow;
